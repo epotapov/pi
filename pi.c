@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -17,12 +18,33 @@
 #define CTRL_K(k) ((k) & 0x1f)
 
 struct config {
+	int x;
+	int y;
 	int rows;
 	int cols;
 	struct termios o_termios;
 };
 
 struct config conf;
+
+struct buffer {
+	char *buff;
+	int len;
+};
+
+void append(struct buffer *b, const char *s, int len) {
+	char *new_string = realloc(b->buff, b->len + len);
+	if (!new_string)
+		return;
+	memcpy(&new_string[b->len], s, len);
+	b->buff = new_string;
+	b->len += len;
+}
+
+void b_free(struct buffer *b) {
+	free(b->buff);
+}
+
 
 // function to print out errors and close program
 void error(const char *s) {
@@ -75,14 +97,14 @@ void processKeypresses() {
 			write(STDOUT_FILENO, "\x1b[H", 3);
 			exit(0);
 			break;
-		default:
+		/*default:
 			if (iscntrl(c)) {
 				printf("%d\r\n", c);
 			}
 			else {
 				printf("%d ('%c')\r\n", c, c);
 			}
-			break;
+			break;*/
 	}
 }
 
@@ -98,22 +120,45 @@ int getWinSize(int *rows, int *cols) {
 }
 
 // draws tildes like vim to show parts of the file that isn't present
-void drawBlankLines() {
+void drawLines(struct buffer *b) {
 	for (int i = 0; i < conf.rows; i++) {
-		write(STDOUT_FILENO, "~", 1);
+		if (i == conf.rows / 2) {
+			char *message = "π a text-editor";
+			int message_size = strlen(message);
+			if (message_size > conf.cols)
+				message_size = conf.cols;
+			int padding = (conf.cols - message_size) / 2;
+      if (padding) {
+        append(b, "~", 1);
+        padding--;
+      }
+      while (padding--)
+				append(b, " ", 1);
+			append(b, message, message_size);
+		}
+		else {
+			append(b, "~", 1);
+		}
+		append(b, "\x1b[K", 3);
 		if (i != conf.rows - 1)
-			write(STDOUT_FILENO, "\r\n", 2);
+			append(b, "\r\n", 2);
 	}
 }
 
 void refreshScreen() {
-	write(STDOUT_FILENO, "\x1b[2J", 4);
-	write(STDOUT_FILENO, "\x1b[H", 3);
-	drawBlankLines();
-	write(STDOUT_FILENO, "\x1b[H", 3);
+	struct buffer b = {0};
+	append(&b, "\x1b[?25l", 6);
+	append(&b, "\x1b[H", 3);
+	drawLines(&b);
+	append(&b, "\x1b[H", 3);
+	append(&b, "\x1b[?25h", 6);
+	write(STDOUT_FILENO, b.buff, b.len);
+	b_free(&b);
 }
 
 void initPi() {
+	conf.x = 0;
+	conf.y = 0;
 	if (getWinSize(&conf.rows, &conf.cols) == -1)
 		error("getWinSize error");
 }
