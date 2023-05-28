@@ -77,7 +77,7 @@ void enableRaw() {
 }
 
 //get the keys pressed from read
-char readKey() {
+int readKey() {
 	int num;
 	char c;
 	while ((num = read(STDIN_FILENO, &c, 1)) != 1) {
@@ -85,26 +85,54 @@ char readKey() {
 			error("read error");
 		}
 	}
+	if (c == '\x1b') {
+		char seq[3];
+		if (read(STDIN_FILENO, &seq[0], 1) != 1)
+			return '\x1b';
+		if (read(STDIN_FILENO, &seq[1], 1) != 1)
+			return '\x1b';
+		if (seq[0] == '[') {
+			switch (seq[1]) {
+				case 'A':
+					return 1000; //up arrow
+				case 'B':
+					return 1001; //down arrow
+				case 'C':
+					return 1002; //right arrow
+				case 'D':
+					return 1003; //left arrow
+			}
+		}
+		return '\x1b';
+	}
 	return c;
 }
 
 // parse the key and check for the key pressed
 void processKeypresses() {
-	char c = readKey();
+	int c = readKey();
 	switch (c) {
 		case CTRL_K('q'):
 			write(STDOUT_FILENO, "\x1b[2J", 4);
 			write(STDOUT_FILENO, "\x1b[H", 3);
 			exit(0);
 			break;
-		/*default:
-			if (iscntrl(c)) {
-				printf("%d\r\n", c);
-			}
-			else {
-				printf("%d ('%c')\r\n", c, c);
-			}
-			break;*/
+		case 1000:
+			if (conf.y != 0)
+				conf.y--;
+			break;
+		case  1003:
+			if (conf.x != 0)
+				conf.x--;
+			break;
+		case 1001:
+			if (conf.y != conf.rows - 1)
+				conf.y++;
+			break;
+		case 1002:
+			if (conf.x != conf.cols - 1)
+				conf.x++;
+			break;
 	}
 }
 
@@ -150,15 +178,17 @@ void refreshScreen() {
 	append(&b, "\x1b[?25l", 6);
 	append(&b, "\x1b[H", 3);
 	drawLines(&b);
-	append(&b, "\x1b[H", 3);
+	char buf[32];
+	snprintf(buf, sizeof(buf), "\x1b[%d;%dH", conf.y + 1, conf.x + 1);
+  append(&b, buf, strlen(buf));
 	append(&b, "\x1b[?25h", 6);
 	write(STDOUT_FILENO, b.buff, b.len);
 	b_free(&b);
 }
 
 void initPi() {
-	conf.x = 0;
-	conf.y = 0;
+	conf.x = 10;
+	conf.y = 10;
 	if (getWinSize(&conf.rows, &conf.cols) == -1)
 		error("getWinSize error");
 }
