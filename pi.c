@@ -17,6 +17,15 @@
 
 #define CTRL_K(k) ((k) & 0x1f)
 
+enum specialKeys {
+	LEFT = 1000,
+  RIGHT,
+  UP,
+  DOWN,
+  PAGE_UP,
+  PAGE_DOWN
+};
+
 struct config {
 	int x;
 	int y;
@@ -92,15 +101,25 @@ int readKey() {
 		if (read(STDIN_FILENO, &seq[1], 1) != 1)
 			return '\x1b';
 		if (seq[0] == '[') {
-			switch (seq[1]) {
-				case 'A':
-					return 1000; //up arrow
-				case 'B':
-					return 1001; //down arrow
-				case 'C':
-					return 1002; //right arrow
-				case 'D':
-					return 1003; //left arrow
+			if (seq[1] >= '0' && seq[1] <= '9') {
+        if (read(STDIN_FILENO, &seq[2], 1) != 1) return '\x1b';
+        if (seq[2] == '~') {
+          switch (seq[1]) {
+            case '5': return PAGE_UP;
+            case '6': return PAGE_DOWN;
+          }
+        }
+      } else {
+				switch (seq[1]) {
+					case 'A':
+						return UP; //up arrow
+					case 'B':
+						return DOWN; //down arrow
+					case 'C':
+						return RIGHT; //right arrow
+					case 'D':
+						return LEFT; //left arrow
+				}
 			}
 		}
 		return '\x1b';
@@ -117,22 +136,29 @@ void processKeypresses() {
 			write(STDOUT_FILENO, "\x1b[H", 3);
 			exit(0);
 			break;
-		case 1000:
+		case UP:
 			if (conf.y != 0)
 				conf.y--;
 			break;
-		case  1003:
+		case  LEFT:
 			if (conf.x != 0)
 				conf.x--;
 			break;
-		case 1001:
+		case DOWN:
 			if (conf.y != conf.rows - 1)
 				conf.y++;
 			break;
-		case 1002:
+		case RIGHT:
 			if (conf.x != conf.cols - 1)
 				conf.x++;
 			break;
+		case PAGE_UP:
+			if (conf.y != 0)
+				conf.y--;
+			break;
+		case PAGE_DOWN:
+			if (conf.y != conf.rows - 1)
+				conf.y++;
 	}
 }
 
