@@ -18,12 +18,13 @@
 #define CTRL_K(k) ((k) & 0x1f)
 
 enum specialKeys {
-  LEFT = 1000,
+  LEFT = 5000,
   RIGHT,
   UP,
   DOWN,
   PAGE_UP,
-  PAGE_DOWN
+  PAGE_DOWN,
+  DELETE
 };
 
 struct config {
@@ -105,8 +106,12 @@ int readKey() {
         if (read(STDIN_FILENO, &seq[2], 1) != 1) return '\x1b';
         if (seq[2] == '~') {
           switch (seq[1]) {
-            case '5': return PAGE_UP;
-            case '6': return PAGE_DOWN;
+            case '3':
+              return DELETE;
+            case '5':
+              return PAGE_UP;
+            case '6':
+              return PAGE_DOWN;
           }
         }
       } else {
@@ -159,6 +164,9 @@ void processKeypresses() {
     case PAGE_DOWN:
       if (conf.y != conf.rows - 1)
         conf.y++;
+    case DELETE:
+      if (conf.x != 0)
+        conf.x--;
   }
 }
 
