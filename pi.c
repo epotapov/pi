@@ -19,11 +19,11 @@
 
 enum specialKeys {
 	LEFT = 1000,
-  RIGHT,
-  UP,
-  DOWN,
-  PAGE_UP,
-  PAGE_DOWN
+	RIGHT,
+	UP,
+	DOWN,
+	PAGE_UP,
+	PAGE_DOWN
 };
 
 struct config {
@@ -102,14 +102,14 @@ int readKey() {
 			return '\x1b';
 		if (seq[0] == '[') {
 			if (seq[1] >= '0' && seq[1] <= '9') {
-        if (read(STDIN_FILENO, &seq[2], 1) != 1) return '\x1b';
-        if (seq[2] == '~') {
-          switch (seq[1]) {
-            case '5': return PAGE_UP;
-            case '6': return PAGE_DOWN;
-          }
-        }
-      } else {
+				if (read(STDIN_FILENO, &seq[2], 1) != 1) return '\x1b';
+				if (seq[2] == '~') {
+					switch (seq[1]) {
+						case '5': return PAGE_UP;
+						case '6': return PAGE_DOWN;
+					}
+				}
+			} else {
 				switch (seq[1]) {
 					case 'A':
 						return UP; //up arrow
@@ -182,11 +182,11 @@ void drawLines(struct buffer *b) {
 			if (message_size > conf.cols)
 				message_size = conf.cols;
 			int padding = (conf.cols - message_size) / 2;
-      if (padding) {
-        append(b, "~", 1);
-        padding--;
-      }
-      while (padding--)
+			if (padding) {
+				append(b, "~", 1);
+				padding--;
+			}
+			while (padding--)
 				append(b, " ", 1);
 			append(b, message, message_size);
 		}
@@ -206,7 +206,7 @@ void refreshScreen() {
 	drawLines(&b);
 	char buf[32];
 	snprintf(buf, sizeof(buf), "\x1b[%d;%dH", conf.y + 1, conf.x + 1);
-  append(&b, buf, strlen(buf));
+	append(&b, buf, strlen(buf));
 	append(&b, "\x1b[?25h", 6);
 	write(STDOUT_FILENO, b.buff, b.len);
 	b_free(&b);
