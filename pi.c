@@ -27,11 +27,18 @@ enum specialKeys {
   DELETE
 };
 
+typedef struct row {
+  int size;
+  char *line;
+} row;
+
 struct config {
   int x;
   int y;
   int rows;
   int cols;
+  int textrows;
+  row r;
   struct termios o_termios;
 };
 
@@ -114,7 +121,8 @@ int readKey() {
               return PAGE_DOWN;
           }
         }
-      } else {
+      }
+      else {
         switch (seq[1]) {
           case 'A':
             return UP; //up arrow
@@ -184,27 +192,49 @@ int getWinSize(int *rows, int *cols) {
 // draws tildes like vim to show parts of the file that isn't present
 void drawLines(struct buffer *b) {
   for (int i = 0; i < conf.rows; i++) {
-    if (i == conf.rows / 2) {
-      char *message = "π a text-editor";
-      int message_size = strlen(message);
-      if (message_size > conf.cols)
-        message_size = conf.cols;
-      int padding = (conf.cols - message_size) / 2;
-      if (padding) {
-        append(b, "~", 1);
-        padding--;
+    if (i >= conf.textrows) {
+      if (i == conf.rows / 2) {
+        char *message = "π a text-editor";
+        int message_size = strlen(message);
+        if (message_size > conf.cols)
+          message_size = conf.cols;
+        int padding = (conf.cols - message_size) / 2;
+        if (padding) {
+          append(b, "~", 1);
+          padding--;
+        }
+        while (padding--)
+          append(b, " ", 1);
+        append(b, message, message_size);
       }
-      while (padding--)
-        append(b, " ", 1);
-      append(b, message, message_size);
+      else {
+        append(b, "~", 1);
+      }
     }
     else {
-      append(b, "~", 1);
+      if (conf.r.size > conf.cols)
+        append(b, conf.r.line, conf.cols);
+      else
+        append(b, conf.r.line, conf.r.size);
     }
     append(b, "\x1b[K", 3);
     if (i != conf.rows - 1)
       append(b, "\r\n", 2);
   }
+}
+
+void openEdit() {
+  FILE *fp = fopen(filename, "r");
+  if (!fp)
+    error("fopen error");
+  char *line = NULL;
+  int sizeLen;
+  sizeLen = 
+  char *text = "Hello world!";
+  conf.r.line = malloc(strlen(text) + 1);
+  strcpy(conf.r.line, text);
+  conf.r.size = strlen(conf.r.line);
+  conf.textrows = 1;
 }
 
 void refreshScreen() {
@@ -223,6 +253,7 @@ void refreshScreen() {
 void initPi() {
   conf.x = 10;
   conf.y = 10;
+  conf.textrows = 0;
   if (getWinSize(&conf.rows, &conf.cols) == -1)
     error("getWinSize error");
 }
@@ -230,6 +261,7 @@ void initPi() {
 int main(int argc, char** argv) {
   enableRaw();
   initPi();
+  openEdit();
   while (1) {
     refreshScreen();
     processKeypresses();
