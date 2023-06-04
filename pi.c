@@ -224,12 +224,12 @@ void drawLines(struct buffer *b) {
 }
 
 void openEdit() {
-  FILE *fp = fopen(filename, "r");
+  /*FILE *fp = fopen(filename, "r");
   if (!fp)
     error("fopen error");
   char *line = NULL;
   int sizeLen;
-  sizeLen = 
+  sizeLen = */
   char *text = "Hello world!";
   conf.r.line = malloc(strlen(text) + 1);
   strcpy(conf.r.line, text);
